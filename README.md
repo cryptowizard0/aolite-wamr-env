@@ -31,20 +31,24 @@ cd <repository-name>
 2. Build WAMR:
 - Regular build
 ```
+// Regular build
 make
-```
 
-- Debug build
-```
+// Debug build
 make debug
-```
 
-3. Clean build files:
-```
+// Clean build files:
 make clean
 ```
 
-
+3. Go environment setup
+```
+go mod tidy
+```
+4. Run tests:
+```
+go test -v
+```
 
 ## Configuration
 

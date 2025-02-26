@@ -1,12 +1,8 @@
-/*
- * Copyright (C) 2019 Intel Corporation.  All rights reserved.
- * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
- */
-
 package main
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/bytecodealliance/wasm-micro-runtime/language-bindings/go/wamr"
 )
@@ -81,156 +77,190 @@ var wasmBytes = []byte{
 	0x2B, 0x20, 0x25, 0x6C, 0x6C, 0x64, 0x20, 0x3D, 0x20, 0x25, 0x6C, 0x6C,
 	0x64, 0x0A, 0x00, 0x31, 0x32, 0x33, 0x34, 0x0A}
 
-var global_heap []byte = make([]byte, 128*1024, 128*1024)
-
-func main() {
-	var module *wamr.Module
-	var instance *wamr.Instance
-	var argv []uint32
-	var results []interface{}
-	var offset uint64
-	var native_addr *uint8
-	var err error
-
-	fmt.Print("Init wasm runtime with global heap buf\n")
-	err = wamr.Runtime().FullInit(true, global_heap, 1)
+func TestWAMRFunctionality(t *testing.T) {
+	// Test 1: Runtime initialization
+	err := wamr.Runtime().FullInit(false, nil, 1)
 	if err != nil {
-		return
+		t.Fatalf("Failed to initialize WAMR runtime: %v", err)
 	}
-	fmt.Print("Destroy runtime\n")
-	wamr.Runtime().Destroy()
+	defer wamr.Runtime().Destroy()
 
-	fmt.Print("Init wasm runtime without global heap buf\n")
-	err = wamr.Runtime().FullInit(false, nil, 1)
+	module, err := wamr.NewModule(wasmBytes)
 	if err != nil {
-		return
+		t.Fatalf("Failed to load WASM module: %v", err)
 	}
+	defer module.Destroy()
 
-	wamr.Runtime().SetLogLevel(wamr.LOG_LEVEL_WARNING)
+	// Test 2: Module Loading and Instance Creation
+	t.Run("Module and Instance", func(t *testing.T) {
+		instance, err := wamr.NewInstance(module, 16384, 16384)
+		if err != nil {
+			t.Fatalf("Failed to create WASM instance: %v", err)
+		}
+		defer instance.Destroy()
 
-	fmt.Print("Load wasm module\n")
-	module, err = wamr.NewModule(wasmBytes)
+		fmt.Println("Module and Instance test completed successfully")
+	})
+
+	// Test 3: Memory Operations
+	t.Run("Memory Operations", func(t *testing.T) {
+		instance, err := wamr.NewInstance(module, 16384, 16384)
+		if err != nil {
+			t.Fatalf("Failed to create WASM instance: %v", err)
+		}
+		defer instance.Destroy()
+
+		// Memory allocation test
+		offset, native_addr := instance.ModuleMalloc(1024)
+		if native_addr == nil {
+			t.Fatal("Failed to allocate memory")
+		}
+
+		// Address validation test
+		if !instance.ValidateAppAddr(offset, 1024) {
+			t.Fatal("Failed to validate app address")
+		}
+		if !instance.ValidateNativeAddr(native_addr, 1024) {
+			t.Fatal("Failed to validate native address")
+		}
+
+		// Address conversion test
+		if native_addr != instance.AddrAppToNative(offset) {
+			t.Fatal("Address conversion mismatch")
+		}
+		if offset != instance.AddrNativeToApp(native_addr) {
+			t.Fatal("Address conversion mismatch")
+		}
+
+		// Memory free
+		instance.ModuleFree(offset)
+	})
+
+	// Test 4: Function Call
+	t.Run("Function Call", func(t *testing.T) {
+		instance, err := wamr.NewInstance(module, 16384, 16384)
+		if err != nil {
+			t.Fatalf("Failed to create WASM instance: %v", err)
+		}
+		defer instance.Destroy()
+
+		var results []interface{}
+		var offset uint64
+		var argv []uint32
+		var native_addr *uint8
+
+		results = make([]interface{}, 8, 8)
+		argv = make([]uint32, 8)
+
+		fmt.Print("\nCall func __main_argc_argv with CallFunc:\n")
+		err = instance.CallFunc("__main_argc_argv", 2, argv)
+		if err != nil {
+			t.Fatalf("Failed to call __main_argc_argv: %v", err)
+		}
+
+		fmt.Print("\nCall func __main_argc_argv with CallFuncV:\n")
+		err = instance.CallFuncV("__main_argc_argv", 2, results,
+			(int32)(0), (int32)(0))
+		if err != nil {
+			t.Fatalf("Failed to call __main_argc_argv: %v", err)
+		}
+
+		fmt.Print("\nCall func `i32 fib2(i32)` with CallFunc:\n")
+		argv[0] = 32
+		err = instance.CallFunc("fib2", 1, argv)
+		if err != nil {
+			t.Fatalf("Failed to call fib2: %v", err)
+		}
+		fmt.Printf("fib2(32) return: %d\n", argv[0])
+
+		fmt.Print("\nCall func `void test1(i32, i64, f32, f64)` with CallFuncV:\n")
+		err = instance.CallFuncV("test1", 0, nil,
+			(int32)(12345678),
+			(int64)(3344556677889900),
+			(float32)(5678.1234),
+			(float64)(987654321.5678))
+		if err != nil {
+			t.Fatalf("Failed to call test1: %v", err)
+		}
+
+		fmt.Print("\nCall func `i64 test2(i64, i64)` with CallFuncV:\n")
+		err = instance.CallFuncV("test2", 1, results,
+			(int64)(3344556677889900),
+			(int64)(1122331122110099))
+		if err != nil {
+			t.Fatalf("Failed to call test2: %v", err)
+		}
+		fmt.Printf("test2(3344556677889900, 1122331122110099) return: %d\n",
+			results[0].(int64))
+
+		fmt.Print("\nCall func `f64 test3(f32, f64)` with CallFuncV:\n")
+		err = instance.CallFuncV("test3", 1, results,
+			(float32)(3456.1234),
+			(float64)(7890.4567))
+		if err != nil {
+			t.Fatalf("Failed to call test3: %v", err)
+		}
+		fmt.Printf("test3(3456.1234, 7890.4567) return: %f\n",
+			results[0].(float64))
+
+		fmt.Print("\nCall func `f32 test4(f64, i32)` with CallFuncV:\n")
+		err = instance.CallFuncV("test4", 1, results,
+			(float64)(8912.3456),
+			(int32)(123))
+		if err != nil {
+			t.Fatalf("Failed to call test4: %v", err)
+		}
+		fmt.Printf("test4(8912.3456, 123) return: %f\n",
+			results[0].(float32))
+
+		fmt.Print("\nTest ModuleMalloc")
+		offset, native_addr = instance.ModuleMalloc(1024)
+		fmt.Printf("ModuleMalloc(%d) return offset: %d, native addr: %p\n",
+			1024, offset, native_addr)
+
+		if !instance.ValidateAppAddr(offset, 1024) {
+			t.Fatal("Validate app addr failed")
+		}
+		if !instance.ValidateNativeAddr(native_addr, 1024) {
+			t.Fatal("Validate native addr failed")
+		}
+		if native_addr != instance.AddrAppToNative(offset) {
+			t.Fatal("Convert app addr to native addr failed")
+		}
+		if offset != instance.AddrNativeToApp(native_addr) {
+			t.Fatal("Convert app addr to native addr failed")
+		}
+
+		instance.ModuleFree(offset)
+
+	})
+}
+
+func BenchmarkWASMExecution(b *testing.B) {
+	err := wamr.Runtime().FullInit(false, nil, 1)
 	if err != nil {
-		fmt.Println(err)
-		goto fail
+		b.Fatalf("Failed to initialize WAMR runtime: %v", err)
 	}
+	defer wamr.Runtime().Destroy()
 
-	fmt.Print("Instantiate wasm module\n")
-	instance, err = wamr.NewInstance(module, 16384, 16384)
+	module, err := wamr.NewModule(wasmBytes)
 	if err != nil {
-		fmt.Println(err)
-		goto fail
+		b.Fatalf("Failed to load WASM module: %v", err)
 	}
+	defer module.Destroy()
 
-	results = make([]interface{}, 8, 8)
-	argv = make([]uint32, 8)
-
-	fmt.Print("\nCall func __main_argc_argv with CallFunc:\n")
-	err = instance.CallFunc("__main_argc_argv", 2, argv)
+	instance, err := wamr.NewInstance(module, 16384, 16384)
 	if err != nil {
-		fmt.Println(err)
-		goto fail
+		b.Fatalf("Failed to create WASM instance: %v", err)
 	}
+	defer instance.Destroy()
 
-	fmt.Print("\nCall func __main_argc_argv with CallFuncV:\n")
-	err = instance.CallFuncV("__main_argc_argv", 2, results,
-		(int32)(0), (int32)(0))
-	if err != nil {
-		fmt.Println(err)
-		goto fail
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		results := make([]interface{}, 1)
+		err = instance.CallFuncV("test_function", 1, results, int32(i))
+		if err != nil {
+			b.Fatalf("Function call failed: %v", err)
+		}
 	}
-
-	fmt.Print("\nCall func `i32 fib2(i32)` with CallFunc:\n")
-	argv[0] = 32
-	err = instance.CallFunc("fib2", 1, argv)
-	if err != nil {
-		fmt.Println(err)
-		goto fail
-	}
-	fmt.Printf("fib2(32) return: %d\n", argv[0])
-
-	fmt.Print("\nCall func `void test1(i32, i64, f32, f64)` with CallFuncV:\n")
-	err = instance.CallFuncV("test1", 0, nil,
-		(int32)(12345678),
-		(int64)(3344556677889900),
-		(float32)(5678.1234),
-		(float64)(987654321.5678))
-	if err != nil {
-		fmt.Println(err)
-		goto fail
-	}
-
-	fmt.Print("\nCall func `i64 test2(i64, i64)` with CallFuncV:\n")
-	err = instance.CallFuncV("test2", 1, results,
-		(int64)(3344556677889900),
-		(int64)(1122331122110099))
-	if err != nil {
-		fmt.Println(err)
-		goto fail
-	}
-	fmt.Printf("test2(3344556677889900, 1122331122110099) return: %d\n",
-		results[0].(int64))
-
-	fmt.Print("\nCall func `f64 test3(f32, f64)` with CallFuncV:\n")
-	err = instance.CallFuncV("test3", 1, results,
-		(float32)(3456.1234),
-		(float64)(7890.4567))
-	if err != nil {
-		fmt.Println(err)
-		goto fail
-	}
-	fmt.Printf("test3(3456.1234, 7890.4567) return: %f\n",
-		results[0].(float64))
-
-	fmt.Print("\nCall func `f32 test4(f64, i32)` with CallFuncV:\n")
-	err = instance.CallFuncV("test4", 1, results,
-		(float64)(8912.3456),
-		(int32)(123))
-	if err != nil {
-		fmt.Println(err)
-		goto fail
-	}
-	fmt.Printf("test4(8912.3456, 123) return: %f\n",
-		results[0].(float32))
-
-	fmt.Print("\nTest ModuleMalloc")
-	offset, native_addr = instance.ModuleMalloc(1024)
-	fmt.Printf("ModuleMalloc(%d) return offset: %d, native addr: %p\n",
-		1024, offset, native_addr)
-
-	if !instance.ValidateAppAddr(offset, 1024) {
-		fmt.Print("Validate app addr failed\n")
-	}
-	if !instance.ValidateNativeAddr(native_addr, 1024) {
-		fmt.Print("Validate native addr failed\n")
-	}
-	if native_addr != instance.AddrAppToNative(offset) {
-		fmt.Print("Convert app addr to native addr failed\n")
-	}
-	if offset != instance.AddrNativeToApp(native_addr) {
-		fmt.Print("Convert app addr to native addr failed\n")
-	}
-
-	instance.ModuleFree(offset)
-
-	/*
-	   instance.DumpMemoryConsumption()
-	   instance.DumpCallStack()
-	*/
-
-	fmt.Print("\n")
-
-fail:
-	if instance != nil {
-		fmt.Print("Destroy instance\n")
-		instance.Destroy()
-	}
-
-	if module != nil {
-		fmt.Print("Destroy module\n")
-		module.Destroy()
-	}
-
-	fmt.Print("Destroy wasm runtime\n")
-	wamr.Runtime().Destroy()
 }
