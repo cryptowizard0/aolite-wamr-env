@@ -19,19 +19,18 @@ func main() {
 	}
 	defer wamr.Runtime().Destroy()
 
-	// 设置日志级别
+	// Set log level
 	wamr.Runtime().SetLogLevel(wamr.LOG_LEVEL_WARNING)
+	// Or set more detailed log level for debugging
+	wamr.Runtime().SetLogLevel(wamr.LOG_LEVEL_DEBUG)
 
-	// 读取 wasm 文件
+	// loading wasm file
 	fmt.Print("Loading wasm module\n")
 	byteCode, err := os.ReadFile("wasm/process.wasm")
 	if err != nil {
 		fmt.Println("Failed to read wasm file:", err)
 		return
 	}
-
-	// 设置更详细的日志级别以便调试
-	// wamr.Runtime().SetLogLevel(wamr.LOG_LEVEL_DEBUG)
 
 	module, err = wamr.NewModule(byteCode)
 	if err != nil {
@@ -40,7 +39,7 @@ func main() {
 	}
 	defer module.Destroy()
 
-	// 实例化 wasm 模块
+	// Instantiating wasm module
 	fmt.Print("Instantiating wasm module\n")
 	instance, err = wamr.NewInstance(module, 83886080, 17179869184)
 	if err != nil {
