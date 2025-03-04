@@ -74,6 +74,9 @@ $(WAMR_DIR)/lib/libvmlib.a: $(WAMR_DIR)
 	# Copy the include directory to the go directory
 	cp -r $(WAMR_DIR)/core/iwasm/include/*.h $(WAMR_DIR)/language-bindings/go/wamr/packaged/include/
 
+	# Copy modifyed 'module.go'
+	cp ./module.go.replace ./_build/wamr/language-bindings/go/wamr/module.go
+
 # Print the library path
 print-lib-path:
 	@echo $(CURDIR)/$(WAMR_DIR)/lib/libvmlib.a
