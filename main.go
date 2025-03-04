@@ -1,52 +1,52 @@
 package main
 
 import (
+	"aolite-wamr-evn/core"
 	"fmt"
+	"log"
 	"os"
-
-	"github.com/bytecodealliance/wasm-micro-runtime/language-bindings/go/wamr"
 )
 
 func main() {
-	var module *wamr.Module
-	var instance *wamr.Instance
-	var err error
-
-	err = wamr.Runtime().Init()
+	// Create context
+	ctx, err := core.NewContext()
 	if err != nil {
-		fmt.Println("Failed to init runtime:", err)
-		return
+		log.Fatal(err)
 	}
-	defer wamr.Runtime().Destroy()
+	defer ctx.Close()
 
-	// Set log level
-	wamr.Runtime().SetLogLevel(wamr.LOG_LEVEL_WARNING)
-	// Or set more detailed log level for debugging
-	wamr.Runtime().SetLogLevel(wamr.LOG_LEVEL_DEBUG)
-
-	// loading wasm file
-	fmt.Print("Loading wasm module\n")
-	byteCode, err := os.ReadFile("wasm/process.wasm")
+	// Load WASM file
+	wasmBytes, err := os.ReadFile("wasm/process.wasm")
 	if err != nil {
-		fmt.Println("Failed to read wasm file:", err)
-		return
+		log.Fatal(err)
 	}
 
-	module, err = wamr.NewModule(byteCode)
+	// Initialize runtime
+	err = ctx.InitRuntime(wasmBytes)
 	if err != nil {
-		fmt.Println("Failed to load module:", err)
-		return
+		log.Fatal(err)
 	}
-	defer module.Destroy()
 
-	// Instantiating wasm module
-	fmt.Print("Instantiating wasm module\n")
-	instance, err = wamr.NewInstance(module, 83886080, 17179869184)
-	if err != nil {
-		fmt.Println("Failed to instantiate module:", err)
-		return
+	// get exports count from wasm file
+	count, _ := ctx.GetExportCount()
+	fmt.Println("export count: ", count)
+
+	// print export info from wasm file
+	for i := int32(0); i < count; i++ {
+		export, _ := ctx.GetExportType(i)
+		fmt.Printf("Export #%d: name=%s, kind=%d\n",
+			i, export.Name, export.Kind)
 	}
-	defer instance.Destroy()
-	fmt.Println("ok")
 
+	// Call function
+	// args := []core.WasmValue{
+	// 	{Kind: core.WasmValueF64, Data: float64(5)},
+	// }
+
+	// results, err := ctx.CallFunction("fac", args)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// fmt.Printf("Result: %v\n", results[0].Data)
 }

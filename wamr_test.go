@@ -235,32 +235,3 @@ func TestWAMRFunctionality(t *testing.T) {
 
 	})
 }
-
-func BenchmarkWASMExecution(b *testing.B) {
-	err := wamr.Runtime().FullInit(false, nil, 1)
-	if err != nil {
-		b.Fatalf("Failed to initialize WAMR runtime: %v", err)
-	}
-	defer wamr.Runtime().Destroy()
-
-	module, err := wamr.NewModule(wasmBytes)
-	if err != nil {
-		b.Fatalf("Failed to load WASM module: %v", err)
-	}
-	defer module.Destroy()
-
-	instance, err := wamr.NewInstance(module, 16384, 16384)
-	if err != nil {
-		b.Fatalf("Failed to create WASM instance: %v", err)
-	}
-	defer instance.Destroy()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		results := make([]interface{}, 1)
-		err = instance.CallFuncV("test_function", 1, results, int32(i))
-		if err != nil {
-			b.Fatalf("Function call failed: %v", err)
-		}
-	}
-}
