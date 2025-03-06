@@ -1,30 +1,14 @@
 package core
 
-import (
-	"github.com/bytecodealliance/wasm-micro-runtime/language-bindings/go/wamr"
-)
-
-// Context 包装WASM运行时上下文
-type Context struct {
-	Module      *wamr.Module
-	Instance    *wamr.Instance
-	Initialized bool
-}
-
-// WasmValue 表示WASM值类型
-type WasmValue struct {
-	Kind WasmValueKind
-	Data interface{}
-}
-
-// WasmValueKind 表示WASM值的类型
-type WasmValueKind int
-
 const (
-	WasmValueI32 WasmValueKind = iota
-	WasmValueI64
-	WasmValueF32
-	WasmValueF64
+	WasmValueI32       = 1
+	WasmValueI64       = 2
+	WasmValueF32       = 3
+	WasmValueF64       = 4
+	WasmValueAnyRef    = 5
+	WasmValueFuncRef   = 6
+	WasmValueExternRef = 7
+	WasmValueString    = 8 // 添加字符串类型
 )
 
 // 导出项类型的枚举常量
@@ -34,6 +18,15 @@ const (
 	ExportTypeMemory uint8 = 2 // 内存类型
 	ExportTypeTable  uint8 = 3 // 表类型
 )
+
+// WasmValue 表示WASM值类型
+type WasmValue struct {
+	Kind WasmValueKind
+	Data interface{}
+}
+
+// WasmValueKind 表示WASM值的类型
+type WasmValueKind int
 
 // ExportType 表示导出项的类型信息
 type ExportType struct {

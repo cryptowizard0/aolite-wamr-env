@@ -12,6 +12,7 @@ func main() {
 	ctx, err := core.NewContext()
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 	defer ctx.Close()
 
@@ -19,13 +20,21 @@ func main() {
 	wasmBytes, err := os.ReadFile("wasm/process.wasm")
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 
 	// Initialize runtime
 	err = ctx.InitRuntime(wasmBytes)
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
+
+	// err = ctx.RegisterWASIFunctions()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	return
+	// }
 
 	// get exports count from wasm file
 	count, _ := ctx.GetExportCount()
@@ -39,14 +48,22 @@ func main() {
 	}
 
 	// Call function
-	// args := []core.WasmValue{
-	// 	{Kind: core.WasmValueF64, Data: float64(5)},
-	// }
+	args := []core.WasmValue{
+		{Kind: core.WasmValueString, Data: ""},
+		{Kind: core.WasmValueString, Data: ""},
+	}
 
-	// results, err := ctx.CallFunction("fac", args)
+	results, err := ctx.CallFunction("handle", args)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	fmt.Printf("Result: %v\n", results[0].Data)
+
+	// args := []uint32{0, 0, 0}
+	// err = ctx.Instance.CallFunc("main", 3, args)
 	// if err != nil {
-	// 	log.Fatal(err)
+	// 	fmt.Println("call main error: ", err)
 	// }
 
-	// fmt.Printf("Result: %v\n", results[0].Data)
 }

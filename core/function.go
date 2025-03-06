@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"unsafe"
 )
 
 // CallFunction 调用WASM函数
@@ -23,6 +24,19 @@ func (c *Context) CallFunction(funcName string, args []WasmValue) ([]WasmValue, 
 			params[i] = arg.Data.(float32)
 		case WasmValueF64:
 			params[i] = arg.Data.(float64)
+		case WasmValueAnyRef:
+			params[i] = arg.Data.(int32) // 引用类型通常表示为 i32
+		case WasmValueFuncRef:
+			params[i] = arg.Data.(int32) // 函数引用表示为 i32
+		case WasmValueExternRef:
+			params[i] = arg.Data.(int32) // 外部引用表示为 i32
+		case WasmValueString:
+			str := arg.Data.(string)
+			ptr, err := c.Instance.WriteString(str)
+			if err != nil {
+				return nil, fmt.Errorf("failed to write string to memory: %v", err)
+			}
+			params[i] = ptr
 		default:
 			return nil, fmt.Errorf("unsupported argument type: %v", arg.Kind)
 		}
@@ -46,13 +60,23 @@ func (c *Context) CallFunction(funcName string, args []WasmValue) ([]WasmValue, 
 
 		switch v := result.(type) {
 		case int32:
-			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueI32, Data: v})
+			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueI32, Data: result})
 		case int64:
-			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueI64, Data: v})
+			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueI64, Data: result})
 		case float32:
-			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueF32, Data: v})
+			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueF32, Data: result})
 		case float64:
-			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueF64, Data: v})
+			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueF64, Data: result})
+		case string:
+			str := c.Instance.ReadString(result.(int64))
+			defer c.Instance.FreeString(result.(int64))
+			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueString, Data: str})
+		case unsafe.Pointer:
+			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueAnyRef, Data: int32(uintptr(result.(unsafe.Pointer)))})
+		case *int32: // funcref
+			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueFuncRef, Data: int32(uintptr(unsafe.Pointer(result.(*int32))))})
+		case *interface{}: // externref
+			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueExternRef, Data: int32(uintptr(unsafe.Pointer(result.(*interface{}))))})
 		default:
 			return nil, fmt.Errorf("unsupported return type: %T", v)
 		}

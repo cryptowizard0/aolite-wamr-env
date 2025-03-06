@@ -22,3 +22,19 @@ func (c *Context) GetExportType(index int32) (*ExportType, error) {
 		Name: exportType.Name,
 	}, nil
 }
+
+// ... existing code ...
+
+// uint64ToBytes 将 uint64 转换为字节数组
+func uint64ToBytes(val uint64) []byte {
+	b := make([]byte, 8)
+	b[0] = byte(val)
+	b[1] = byte(val >> 8)
+	b[2] = byte(val >> 16)
+	b[3] = byte(val >> 24)
+	b[4] = byte(val >> 32)
+	b[5] = byte(val >> 40)
+	b[6] = byte(val >> 48)
+	b[7] = byte(val >> 56)
+	return b
+}
