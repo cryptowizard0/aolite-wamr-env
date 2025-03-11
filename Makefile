@@ -1,11 +1,8 @@
 WAMR_VERSION = 2.2.0
 WAMR_DIR = _build/wamr
 
-ifdef HB_DEBUG
-	WAMR_FLAGS = -DWAMR_ENABLE_LOG=1 -DWAMR_BUILD_DUMP_CALL_STACK=1 -DCMAKE_BUILD_TYPE=Debug
-else
-	WAMR_FLAGS = -DCMAKE_BUILD_TYPE=Release
-endif
+
+WAMR_FLAGS = -DWAMR_ENABLE_LOG=1 -DWAMR_BUILD_DUMP_CALL_STACK=1 -DCMAKE_BUILD_TYPE=Debug
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -56,7 +53,7 @@ $(WAMR_DIR)/lib/libvmlib.a: $(WAMR_DIR)
 		-DWAMR_BUILD_EXCE_HANDLING=1 \
 		-DWAMR_BUILD_SHARED_MEMORY=0 \
 		-DWAMR_BUILD_AOT=1 \
-		-DWAMR_BUILD_LIBC_WASI=1 \
+		-DWAMR_BUILD_LIBC_WASI=0 \
 		-DWAMR_BUILD_FAST_INTERP=0 \
 		-DWAMR_BUILD_INTERP=1 \
 		-DWAMR_BUILD_JIT=0 \
@@ -65,6 +62,8 @@ $(WAMR_DIR)/lib/libvmlib.a: $(WAMR_DIR)
 		-DWAMR_BUILD_TAIL_CALL=1 \
 		-DWAMR_BUILD_AOT_STACK_FRAME=1 \
 		-DWAMR_BUILD_MEMORY_PROFILING=1 \
+		-DWAMR_BUILD_LIB_PTHREAD=1 \
+		-DWAMR_BUILD_LIBC_BUILTIN=1 \
 		-DWAMR_BUILD_DUMP_CALL_STACK=1
 	make -C $(WAMR_DIR)/lib -j8
 
@@ -74,8 +73,9 @@ $(WAMR_DIR)/lib/libvmlib.a: $(WAMR_DIR)
 	# Copy the include directory to the go directory
 	cp -r $(WAMR_DIR)/core/iwasm/include/*.h $(WAMR_DIR)/language-bindings/go/wamr/packaged/include/
 
-	# Copy modifyed 'module.go'
+	# Copy modifyed wamr go lib 'utils.go'
 	cp ./replace/utils.go ./_build/wamr/language-bindings/go/wamr/utils.go
+	cp ./replace/module.go ./_build/wamr/language-bindings/go/wamr/module.go
 
 # Print the library path
 print-lib-path:

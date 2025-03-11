@@ -7,6 +7,11 @@ import (
 	"github.com/bytecodealliance/wasm-micro-runtime/language-bindings/go/wamr"
 )
 
+/*
+#include <stdlib.h>  // 添加这行，用于 C.free
+*/
+import "C"
+
 // Context 包装WASM运行时上下文
 type Context struct {
 	Module      *wamr.Module
@@ -46,11 +51,6 @@ func (c *Context) InitRuntime(wasmBytes []byte) error {
 	if len(wasmBytes) == 0 {
 		return errors.New("wasm bytes is empty")
 	}
-	// mock
-	err := wamr.RegisterWASIFunctions()
-	if err != nil {
-		return err
-	}
 
 	// 创建模块
 	module, err := wamr.NewModule(wasmBytes)
@@ -59,7 +59,7 @@ func (c *Context) InitRuntime(wasmBytes []byte) error {
 	}
 	c.Module = module
 
-	c.Module.PrintImports()
+	// c.Module.PrintImports()
 
 	// 创建实例 (设置内存限制)
 	instance, err := wamr.NewInstance(module, 83886080, 17179869184) // ~80MB, ~16GB
@@ -69,6 +69,7 @@ func (c *Context) InitRuntime(wasmBytes []byte) error {
 	c.Instance = instance
 
 	c.Initialized = true
-	c.Instance.PrintImports()
+
+	// c.Instance.PrintImports()
 	return nil
 }
