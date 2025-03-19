@@ -68,8 +68,8 @@ func (c *Context) CallFunction(funcName string, args []WasmValue) ([]WasmValue, 
 		case float64:
 			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueF64, Data: result})
 		case string:
-			str := c.Instance.ReadString(result.(int64))
-			defer c.Instance.FreeString(result.(int64))
+			str := c.Instance.ReadString(result.(int32))
+			defer c.Instance.FreeString(result.(int32))
 			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueString, Data: str})
 		case unsafe.Pointer:
 			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueAnyRef, Data: int32(uintptr(result.(unsafe.Pointer)))})

@@ -2,6 +2,7 @@ package main
 
 import (
 	"aolite-wamr-evn/core"
+
 	"fmt"
 	"log"
 	"os"
@@ -30,7 +31,7 @@ func LoadAO() {
 	}
 
 	// Load WASM file
-	wasmBytes, err := os.ReadFile("wasm/process.wasm")
+	wasmBytes, err := os.ReadFile("wasm/process-32-clang.wasm")
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -44,15 +45,15 @@ func LoadAO() {
 	}
 
 	// get exports count from wasm file
-	count, _ := ctx.GetExportCount()
-	fmt.Println("export count: ", count)
+	// count, _ := ctx.GetExportCount()
+	// fmt.Println("export count: ", count)
 
-	// print export info from wasm file
-	for i := int32(0); i < count; i++ {
-		export, _ := ctx.GetExportType(i)
-		fmt.Printf("Export #%d: name=%s, kind=%d\n",
-			i, export.Name, export.Kind)
-	}
+	// // print export info from wasm file
+	// for i := int32(0); i < count; i++ {
+	// 	export, _ := ctx.GetExportType(i)
+	// 	fmt.Printf("Export #%d: name=%s, kind=%d\n",
+	// 		i, export.Name, export.Kind)
+	// }
 
 	// call main
 	// args := []uint32{0, 0, 0}

@@ -53,7 +53,7 @@ $(WAMR_DIR)/lib/libvmlib.a: $(WAMR_DIR)
 		-DWAMR_BUILD_EXCE_HANDLING=1 \
 		-DWAMR_BUILD_SHARED_MEMORY=0 \
 		-DWAMR_BUILD_AOT=1 \
-		-DWAMR_BUILD_LIBC_WASI=0 \
+		-DWAMR_BUILD_LIBC_WASI=1 \
 		-DWAMR_BUILD_FAST_INTERP=0 \
 		-DWAMR_BUILD_INTERP=1 \
 		-DWAMR_BUILD_JIT=0 \
@@ -73,9 +73,18 @@ $(WAMR_DIR)/lib/libvmlib.a: $(WAMR_DIR)
 	# Copy the include directory to the go directory
 	cp -r $(WAMR_DIR)/core/iwasm/include/*.h $(WAMR_DIR)/language-bindings/go/wamr/packaged/include/
 
-	# Copy modifyed wamr go lib 'utils.go'
-	cp ./replace/utils.go ./_build/wamr/language-bindings/go/wamr/utils.go
-	cp ./replace/module.go ./_build/wamr/language-bindings/go/wamr/module.go
+	# Copy modifyed wamr go lib
+	# cp ./libs/module.go ./_build/wamr/language-bindings/go/wamr/module.go
+	cp ./libs/utils.go ./_build/wamr/language-bindings/go/wamr/utils.go
+	cp ./libs/wamr_utils.h ./_build/wamr/language-bindings/go/wamr/wamr_utils.h
+	
+	# Compile libs
+	gcc -c ./libs/wamr_utils.c \
+		-o ./libs/wamr_utils.o \
+		-I./_build/wamr/language-bindings/go/wamr/packaged/include
+
+	cp ./libs/wamr_utils.o ./_build/wamr/language-bindings/go/wamr/wamr_utils.o
+	
 
 # Print the library path
 print-lib-path:
