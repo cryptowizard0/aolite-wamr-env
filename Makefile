@@ -19,9 +19,9 @@ else
     WAMR_BUILD_TARGET = X86_64
 endif
 
-.PHONY: all clean debug debug-clean
+.PHONY: all clean debug debug-clean utils
 
-all: $(WAMR_DIR)/lib/libvmlib.a
+all: $(WAMR_DIR)/lib/libvmlib.a utils
 
 debug: debug-clean $(WAMR_DIR)
 	HB_DEBUG=1 make $(WAMR_DIR)/lib/libvmlib.a
@@ -74,17 +74,19 @@ $(WAMR_DIR)/lib/libvmlib.a: $(WAMR_DIR)
 	cp -r $(WAMR_DIR)/core/iwasm/include/*.h $(WAMR_DIR)/language-bindings/go/wamr/packaged/include/
 
 	
-	
+utils:
 	# Compile libs
-	gcc -c ./libs/wamr_utils.c \
-		-o ./libs/wamr_utils.o \
+	gcc -c ./libs/wamr_imports.c \
+		-o ./libs/wamr_imports.o \
 		-I./_build/wamr/language-bindings/go/wamr/packaged/include
+	ar rcs ./libs/libwamr_imports.a ./libs/wamr_imports.o
+	rm ./libs/wamr_imports.o
 
-	cp ./libs/wamr_utils.o ./_build/wamr/language-bindings/go/wamr/wamr_utils.o
+	cp ./libs/libwamr_imports.a ./_build/wamr/language-bindings/go/wamr/libwamr_imports.a
 
 	# Copy modifyed wamr go lib
 	cp ./libs/utils.go ./_build/wamr/language-bindings/go/wamr/utils.go
-	cp ./libs/wamr_utils.h ./_build/wamr/language-bindings/go/wamr/wamr_utils.h
+	cp ./libs/wamr_imports.h ./_build/wamr/language-bindings/go/wamr/wamr_imports.h
 	
 
 # Print the library path

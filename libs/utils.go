@@ -1,8 +1,8 @@
 package wamr
 
 // #cgo CFLAGS: -I${SRCDIR} -I${SRCDIR}/packaged/include
-// #cgo LDFLAGS: ${SRCDIR}/wamr_utils.o
-// #include "wamr_utils.h"
+// #cgo LDFLAGS: ${SRCDIR}/libwamr_imports.a
+// #include "wamr_imports.h"
 import "C"
 import (
 	"errors"

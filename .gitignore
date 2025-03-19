@@ -39,3 +39,4 @@ Thumbs.db
 # Build
 _build/
 
+libs/libwamr_utils.a
