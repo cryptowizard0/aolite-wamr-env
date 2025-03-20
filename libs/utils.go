@@ -18,14 +18,7 @@ type ExportType struct {
 }
 
 func RegisterImportFunctions() error {
-	// success := C.register_wasi_clock()
-	// if success {
-	// 	fmt.Println("WASI functions registered successfully")
-	// } else {
-	// 	fmt.Println("Failed to register WASI functions")
-	// 	return fmt.Errorf("Failed to register WASI functions")
-	// }
-
+	fmt.Println("call register_env")
 	success := C.register_env()
 	if success {
 		fmt.Println("env functions registered successfully")
@@ -34,13 +27,13 @@ func RegisterImportFunctions() error {
 		return fmt.Errorf("Failed to register env functions")
 	}
 
-	// success = C.register_tests()
-	// if success {
-	// 	fmt.Println("tests functions registered successfully")
-	// } else {
-	// 	fmt.Println("Failed to register tests functions")
-	// 	return fmt.Errorf("Failed to register tests functions")
-	// }
+	success = C.register_tests()
+	if success {
+		fmt.Println("tests functions registered successfully")
+	} else {
+		fmt.Println("Failed to register tests functions")
+		return fmt.Errorf("Failed to register tests functions")
+	}
 
 	return nil
 }

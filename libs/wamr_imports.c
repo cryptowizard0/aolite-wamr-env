@@ -46,24 +46,27 @@ static int32_t wasi_clock_time_get(wasm_exec_env_t exec_env, int32_t clock_id,
 }
 
 
+static uint32_t env_signal(wasm_exec_env_t exec_env, uint32_t signum, uint32_t handler) {
+    printf("Signal called with signum: %d, handler: %d\n", signum, handler);
+    return 0;  // Return 0 for success
+}
 
-
-int32_t env_wasm_setjmp(wasm_exec_env_t exec_env, int32_t buf, int32_t label, int32_t table) {
+uint32_t env_saveSetjmp(wasm_exec_env_t exec_env, uint32_t env_addr, uint32_t label, uint32_t table, uint32_t size) {
     wasm_module_inst_t module_inst = get_module_inst(exec_env);
     if (!module_inst)
         return -1;
 
-    if (!wasm_runtime_validate_app_addr(module_inst, buf, sizeof(int64_t)))
+    if (!wasm_runtime_validate_app_addr(module_inst, env_addr, sizeof(int64_t)))
         return -1;
 
     return setjmp(g_jmpbuf);
 }
 
-int32_t env_wasm_setjmp_test(wasm_exec_env_t exec_env) {
+uint32_t env_wasm_setjmp_test(wasm_exec_env_t exec_env) {
     return setjmp(g_jmpbuf);
 }
 
-void env_emscripten_longjmp(wasm_exec_env_t exec_env) {
+void env_emscripten_longjmp(wasm_exec_env_t exec_env, uint32_t env, uint32_t val) {
     longjmp(g_jmpbuf, 1);
 }
 
@@ -71,7 +74,7 @@ void env_setTempRet0(wasm_exec_env_t exec_env, int32_t value) {
     g_tempRet0 = value;
 }
 
-int32_t env_getTempRet0(wasm_exec_env_t exec_env) {
+uint32_t env_getTempRet0(wasm_exec_env_t exec_env) {
     return g_tempRet0;
 }
 
@@ -96,44 +99,53 @@ static uint32_t mul(wasm_exec_env_t exec_env, uint32_t a, uint32_t b) {
     return a * b; 
 }
 
-static void env_invoke_vii(wasm_exec_env_t exec_env, int32_t func_index, int32_t arg1, int32_t arg2) {
-    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
-    char func_name[32];
-    snprintf(func_name, sizeof(func_name), "func_%d", func_index);
-    wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, func_name);
-
-    if (func == NULL) {
-        printf("Function not found\n");
-        return;
-    }
-
-    uint32_t argv[2] = {arg1, arg2};
-    if (!wasm_runtime_call_wasm(exec_env, func, 2, argv)) {
-        printf("Failed to call function\n");
-        return;
-    }
-}
 
 
-
-static NativeSymbol native_symbols2[] = {
+static NativeSymbol native_symbols_test[] = {
     {"mul", mul, "(ii)i", NULL}
 };
 
 static NativeSymbol native_symbols_env[] = {
-    {"invoke_vii", (void*)env_invoke_vii, "(iii)", NULL},
-    {"__wasm_setjmp", (void*)env_wasm_setjmp, "()i", NULL},
-    {"__wasm_setjmp_test", (void*)env_wasm_setjmp_test, "()i", NULL},
-    {"emscripten_longjmp", (void*)env_emscripten_longjmp, "()", NULL},
-    {"setTempRet0", (void*)env_setTempRet0, "(i)", NULL},
-    {"getTempRet0", (void*)env_getTempRet0, "()i", NULL}
+    {"saveSetjmp", env_saveSetjmp, "(iiii)i", NULL},
+    {"__wasm_longjmp", env_emscripten_longjmp, "(ii)", NULL}, 
+    {"getTempRet0", env_getTempRet0, "()i", NULL},
+    {"signal", env_signal, "(ii)i", NULL},
 };
 
 // 注册函数实现
 bool register_tests() {
-    return wasm_runtime_register_natives("my_lib", native_symbols2, 1);
+    printf("Import tests \n");
+    return wasm_runtime_register_natives("my_lib", native_symbols_test, 1);
 }
 
+// ... existing code ...
+
 bool register_env() {
-    return wasm_runtime_register_natives("env", native_symbols_env, sizeof(native_symbols_env) / sizeof(native_symbols_env[0]));
+    printf("\n=== Registering env functions ===\n");
+    size_t func_count = sizeof(native_symbols_env) / sizeof(native_symbols_env[0]);
+    printf("Registering %zu functions for 'env' module:\n", func_count);
+    
+    for (size_t i = 0; i < func_count; i++) {
+        printf("Function[%zu]:\n", i);
+        printf("  Name: %s\n", native_symbols_env[i].symbol);
+        printf("  Signature: %s\n", native_symbols_env[i].signature);
+    }
+    
+    bool result = wasm_runtime_register_natives("env", native_symbols_env, func_count);
+    printf("Registration %s\n", result ? "succeeded" : "failed");
+    
+    if (!result) {
+        printf("!!! Registration failed for 'env' module !!!\n");
+        // 尝试单独注册每个函数以定位问题
+        for (size_t i = 0; i < func_count; i++) {
+            bool single_result = wasm_runtime_register_natives(
+                "env", &native_symbols_env[i], 1);
+            printf("Individual registration of '%s': %s\n", 
+                   native_symbols_env[i].symbol,
+                   single_result ? "succeeded" : "failed");
+        }
+    }
+    
+    printf("===============================\n\n");
+    return result;
 }

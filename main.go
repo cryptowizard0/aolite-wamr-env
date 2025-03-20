@@ -31,7 +31,7 @@ func LoadAO() {
 	}
 
 	// Load WASM file
-	wasmBytes, err := os.ReadFile("wasm/process-32-clang.wasm")
+	wasmBytes, err := os.ReadFile("wasm/process.wasm")
 	if err != nil {
 		log.Fatal(err)
 		return
