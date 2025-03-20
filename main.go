@@ -56,15 +56,15 @@ func LoadAO() {
 	// }
 
 	// call main
-	// args := []uint32{0, 0, 0}
-	// err = ctx.Instance.CallFunc("main", 3, args)
-	// if err != nil {
-	// 	fmt.Println("call main error: ", err)
-	// 	return
-	// }
-	// fmt.Println("call main ok!")
-	// fmt.Printf("main function returns: args[0]=%d, args[1]=%d, args[2]=%d\n",
-	// 	args[0], args[1], args[2])
+	args := []uint32{0, 0, 0}
+	err = ctx.Instance.CallFunc("main", 3, args)
+	if err != nil {
+		fmt.Println("call main error: ", err)
+		return
+	}
+	fmt.Println("call main ok!")
+	fmt.Printf("main function returns: args[0]=%d, args[1]=%d, args[2]=%d\n",
+		args[0], args[1], args[2])
 
 	// Call function
 	msg := `{

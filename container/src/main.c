@@ -117,7 +117,13 @@ int main(void) {
     lua_close(wasm_lua_state);
     return 1;
   }
-  //printf("Boot Lua Webassembly!\n");
+  printf("Boot Lua Webassembly!\n");
+  // test lua print
+  lua_getglobal(wasm_lua_state, "print");
+  lua_pushstring(wasm_lua_state, "Hello, Lua!");
+  if (lua_pcall(wasm_lua_state, 1, 0, 0) != 0) {
+    printf("error running function `print`: %s\n", lua_tostring(wasm_lua_state, -1));
+  }
   return 0;
 }
 

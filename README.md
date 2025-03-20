@@ -7,8 +7,7 @@ This project provides a customized WebAssembly Micro Runtime (WAMR) environment 
 ## Features
 
 Custom WAMR build with:
-- Memory64 support enabled
-- AOT (Ahead of Time) compilation enabled
+- Memory32 support enabled
 - WASI support
 - Hardware bound check disabled
 - Exception handling enabled
@@ -21,13 +20,24 @@ Custom WAMR build with:
 - CMake 3.12 or later
 - Make
 - GCC/Clang
+- Docker
 
 ## Building
 
 1. Clone the repository:
+```
 git clone <repository-url>
 cd <repository-name>
+```
 
+2. Build docker image. This image contains` wasi-sdk 22.0` and compile `lua 5.3.4` wasm libraries
+```bash
+cd container && bash build.sh
+```
+3. Build ao wasm. Use `wasi-sdk` to compile ao and generate  `process.wasm`
+```bash
+cd process && bash build.sh
+```
 2. Build WAMR:
 ```
 // Regular build

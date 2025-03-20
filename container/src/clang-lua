@@ -183,7 +183,7 @@ def main():
         '-nostartfiles',
         '-D_WASI_EMULATED_SIGNAL',    # 启用信号模拟
         '-D_WASI_EMULATED_SETJMP', # 启用 setjmp 模拟
-        '-Wl,--export-all',
+        # '-Wl,--export-all',
         '-Wl,--no-entry',
         '-Wl,--allow-undefined',
         '-Wl,--stack-first',          # 优化栈内存布局
