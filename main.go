@@ -12,6 +12,7 @@ import (
 
 func main() {
 	LoadAO()
+	//print_string()
 }
 
 func LoadAO() {
@@ -56,15 +57,15 @@ func LoadAO() {
 	// }
 
 	// call main
-	args := []uint32{0, 0, 0}
-	err = ctx.Instance.CallFunc("main", 3, args)
-	if err != nil {
-		fmt.Println("call main error: ", err)
-		return
-	}
-	fmt.Println("call main ok!")
-	fmt.Printf("main function returns: args[0]=%d, args[1]=%d, args[2]=%d\n",
-		args[0], args[1], args[2])
+	// args := []uint32{0, 0, 0}
+	// err = ctx.Instance.CallFunc("main", 3, args)
+	// if err != nil {
+	// 	fmt.Println("call main error: ", err)
+	// 	return
+	// }
+	// fmt.Println("call main ok!")
+	// fmt.Printf("main function returns: args[0]=%d, args[1]=%d, args[2]=%d\n",
+	// 	args[0], args[1], args[2])
 
 	// Call function
 	msg := `{
@@ -98,6 +99,8 @@ func LoadAO() {
 			"TraceId": "TRACE_ID"
 		}
 	}`
+	// env = "{}"
+	// msg = "{}"
 	handleArgs := []core.WasmValue{
 		{Kind: core.WasmValueString, Data: msg},
 		{Kind: core.WasmValueString, Data: env},
@@ -105,8 +108,64 @@ func LoadAO() {
 
 	results, err := ctx.CallFunction("handle", handleArgs)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 		return
 	}
 	fmt.Printf("Result: %v\n", results[0].Data)
+}
+
+func print_string() {
+	// Create context
+	ctx, err := core.NewContext()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	defer ctx.Close()
+
+	// 在加载 WASM 之前注册 WASI 函数
+	err = wamr.RegisterImportFunctions()
+	if err != nil {
+		log.Fatal("Failed to register WASI functions:", err)
+		return
+	}
+
+	// Load WASM file
+	wasmBytes, err := os.ReadFile("wasm/print_string-emcc.wasm")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	// Initialize runtime
+	err = ctx.InitRuntime(wasmBytes)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	// get exports count from wasm file
+	count, _ := ctx.GetExportCount()
+	fmt.Println("export count: ", count)
+
+	// print export info from wasm file
+	for i := int32(0); i < count; i++ {
+		export, _ := ctx.GetExportType(i)
+		fmt.Printf("Export #%d: name=%s, kind=%d\n",
+			i, export.Name, export.Kind)
+	}
+
+	// Call function
+	// 准备参数
+	testString := "Hello from Go!"
+	args := []core.WasmValue{
+		{Kind: core.WasmValueString, Data: testString},
+	}
+
+	_, err = ctx.CallFunction("print_string", args)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	fmt.Println("Function called successfully!")
 }

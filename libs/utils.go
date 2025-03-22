@@ -5,7 +5,6 @@ package wamr
 // #include "wamr_imports.h"
 import "C"
 import (
-	"errors"
 	"fmt"
 	"unsafe"
 )
@@ -67,17 +66,37 @@ func (self *Instance) PrintImports() {
 func (self *Instance) WriteString(s string) (int32, error) {
 	// 分配内存（字符串长度 + 1 用于 null 终止符）
 	size := len(s) + 1
-	ptr := C.wasm_runtime_malloc(C.uint(size))
-	if ptr == nil {
-		return 0, errors.New("failed to allocate memory")
+	// var offset uint32
+	// ptr := C.wasm_runtime_module_malloc(self._instance, C.uint64_t(size), (*unsafe.Pointer)(unsafe.Pointer(&offset)))
+	// if ptr == nil {
+	// 	return 0, errors.New("failed to allocate memory")
+	// }
+	fmt.Println("--> 1")
+	offset, native_addr := self.ModuleMalloc(uint64(size))
+	if native_addr == nil {
+		fmt.Println("--> 2.0")
+		return 0, fmt.Errorf("failed to allocate memory")
 	}
 
+	fmt.Println("--> 2", offset, native_addr)
+	v := self.ValidateStrAddr(offset)
+	if !v {
+		fmt.Println("--> 2.1")
+		return 0, fmt.Errorf("failed to validate app addr")
+	}
+	// 获取本地内存指针
+	// native_ptr := C.wasm_runtime_addr_app_to_native(self._instance, C.uint32_t(offset))
+	// if native_ptr == nil {
+	// 	C.wasm_runtime_module_free(self._instance, C.uint32_t(offset))
+	// 	return 0, errors.New("failed to get native pointer")
+	// }
+	native_ptr := self.AddrAppToNative(uint64(offset))
+	fmt.Println("--> 3")
 	// 将字符串复制到 WASM 内存
-	data := C.GoBytes(unsafe.Pointer(ptr), C.int(size))
-	copy(data, s)
-	data[len(s)] = 0 // null 终止符
-
-	return int32(uintptr(ptr)), nil
+	strBytes := []byte(s + string(rune(0)))
+	C.memcpy(unsafe.Pointer(native_ptr), unsafe.Pointer(&strBytes[0]), C.size_t(len(strBytes)))
+	fmt.Println("--> 4")
+	return int32(offset), nil
 }
 
 // ReadString 从 WASM 内存中读取字符串

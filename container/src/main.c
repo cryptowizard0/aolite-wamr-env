@@ -1,6 +1,7 @@
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
+#include <string.h>
 
 #include "lsqlite3.h"
 
@@ -18,8 +19,104 @@ static const unsigned char program[] = {__LUA_BASE__};
 // Pre-compiled entry script which user wrote
 static const unsigned char lua_main_program[] = {__LUA_MAIN__};
 
-// This line will be injected by emcc-lua as export functions to WASM declaration
-__LUA_FUNCTION_DECLARATIONS__
+
+static const char* process_handle(lua_State* L, const char* json_msg, const char* json_env) {
+  // 准备 Lua 代码
+  const char* lua_code = 
+      "print('This form lua: ')"
+      "local json_msg = [=[%s]=]\n"
+      "local json_env = [=[%s]=]\n"
+      "print(json_msg)\n"
+      "print(json_env)\n"
+      "return 'hehe, ok!'";
+
+      // "require('ao')\n"
+      // "local process = require('process')\n"
+      // "local json = require('json')\n"
+      // "local json_msg = [=[%s]=]\n"
+      // "local json_env = [=[%s]=]\n"
+      // "local table_msg = json.decode(json_msg)\n"
+      // "local table_env = json.decode(json_env)\n"
+      // "local resp = process.handle(table_msg, table_env)\n"
+      // "local json_outbox = json.encode(resp)\n"
+      // "return json_outbox";
+
+  // 分配内存用于格式化后的代码
+  size_t code_size = strlen(lua_code) + strlen(json_msg) + strlen(json_env) + 1;
+  char* formatted_code = (char*)malloc(code_size);
+  if (!formatted_code) {
+      return NULL;
+  }
+
+  // 格式化 Lua 代码
+  snprintf(formatted_code, code_size, lua_code, json_msg, json_env);
+
+  // 执行 Lua 代码
+  if (luaL_dostring(L, formatted_code) != LUA_OK) {
+      free(formatted_code);
+      return NULL;
+  }
+  free(formatted_code);
+
+  // 获取返回值
+  const char* result = lua_tostring(L, -1);
+  if (!result) {
+      return NULL;
+  }
+
+  // 复制结果字符串（因为 Lua 可能会清理栈）
+  char* final_result = strdup(result);
+  lua_pop(L, 1);  // 清理栈
+  fprintf(stderr, "lua handle result: %s \n", result);
+  return final_result;
+}
+
+__attribute__((visibility("default")))
+const char*  handle(const char* arg_0, const char* arg_1) {
+  fprintf(stderr,"boot lua in handle ### arg_0: %s, arg_1: %s\n", arg_0, arg_1);
+  if (wasm_lua_state == NULL) {
+    fprintf(stderr, "newstate 1 \n");
+    wasm_lua_state = luaL_newstate();
+    fprintf(stderr,"newstate 2 \n");
+    boot_lua(wasm_lua_state);
+    fprintf(stderr,"newstate 3 \n");
+  }
+  fprintf(stderr,"get function \n");
+
+  // call lua throw loader.lua
+  //==================================
+  // Push arguments
+  // lua_getglobal(wasm_lua_state, "handle");
+  // if (!lua_isfunction(wasm_lua_state, -1)) {
+  //   printf("function handle is not defined globaly in lua runtime\n");
+  //   lua_settop(wasm_lua_state, 0);
+  //   return "";
+  // }
+  // lua_pushstring(wasm_lua_state, arg_0);
+  // lua_pushstring(wasm_lua_state, arg_1);
+
+  // // Call lua function
+  // fprintf(stderr," pcall \n");
+  // if (lua_pcall(wasm_lua_state, 2, 1, 0)) {
+  //   printf("failed to call handle function\n");
+  //   printf("error: %s\n", lua_tostring(wasm_lua_state, -1));
+  //   lua_settop(wasm_lua_state, 0);
+  //   return "";
+  // }
+  
+  // // Handle return values
+  // if (lua_isstring(wasm_lua_state, -1)) {
+  //   const char* return_value = lua_tostring(wasm_lua_state, -1);
+  //   lua_settop(wasm_lua_state, 0);
+  //   return return_value;
+  // }
+  // return "";
+  //==================================
+
+  // call lua throw do_string
+  return process_handle(wasm_lua_state, arg_0, arg_1);
+  
+}
 
 // This function is for debug to see an C <-> Lua stack values
 // void dumpStack(lua_State *L) {
@@ -108,6 +205,7 @@ static int docall (lua_State *L, int narg, int nres) {
 
 // Boot function
 int main(void) {
+  volatile int debug = 1;
   if (wasm_lua_state != NULL) {
     return 0;
   }
@@ -117,19 +215,31 @@ int main(void) {
     lua_close(wasm_lua_state);
     return 1;
   }
-  printf("Boot Lua Webassembly!\n");
+  if (debug) printf("Boot Lua Webassembly!\n");
   // test lua print
   lua_getglobal(wasm_lua_state, "print");
-  lua_pushstring(wasm_lua_state, "Hello, Lua!");
+  lua_pushstring(wasm_lua_state, "Hello, Lua from main!");
   if (lua_pcall(wasm_lua_state, 1, 0, 0) != 0) {
     printf("error running function `print`: %s\n", lua_tostring(wasm_lua_state, -1));
   }
+  // const char* env = "{__ENV__}";
+  // const char* msg = "{__MSG__}";
+  // if (debug) printf("call handle(%s, %s) \n", msg, env);
+  
+  // const char* result = handle(msg, env);
+  // printf("result: %s\n", result);
+  
   return 0;
 }
 
 // boot lua runtime from compiled lua source
 int boot_lua(lua_State* L) {
   luaL_openlibs(L);
+  printf("checkstack!\n");
+  if (!lua_checkstack(L, 8192)) {
+    fprintf(stderr, "无法分配足够的栈空间\n");
+    return 1;
+  }
   
   // Preload lsqlite3
   luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);

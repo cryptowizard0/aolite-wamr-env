@@ -22,7 +22,10 @@ type Context struct {
 // NewContext 创建新的WASM上下文
 func NewContext() (*Context, error) {
 	runtime := wamr.Runtime()
-	if err := runtime.Init(); err != nil {
+	heapSize := 2 * 1024 * 1024 * 1024 // 2GB
+	heapBuf := make([]byte, heapSize)
+
+	if err := runtime.FullInit(true, heapBuf, 1); err != nil {
 		return nil, fmt.Errorf("failed to init runtime: %v", err)
 	}
 

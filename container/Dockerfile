@@ -63,7 +63,8 @@ RUN cd /lua-${LUA_VERSION} && \
         --sysroot=/opt/wasi-sdk/share/wasi-sysroot \
         -isystem /opt/wasi-sdk/share/wasi-sysroot/include/wasm32-wasip1 \
         #-isystem ${WASIX_DIR}/include \
-        -O3 \
+        # -O3 \
+        -O0 \
         -mllvm -wasm-enable-sjlj \
         -D_WASI_EMULATED_SIGNAL \
         -D_WASI_EMULATED_PROCESS_CLOCKS \
@@ -76,10 +77,12 @@ RUN cd /lua-${LUA_VERSION} && \
     LDFLAGS="-Wl,--export-all \
              #-L${WASIX_DIR} -lwasix \
              -Wl,--no-entry \
+             -Wl,--import-memory \
              -Wl,--allow-undefined \
              -Wl,--stack-first \
-             -Wl,--import-memory \
-             -Wl,--max-memory=4294967296"
+             -Wl,-z,stack-size=41943040 \
+             -Wl,--initial-memory=268435456 \ 
+             -Wl,--max-memory=4294967296" 
 
 
 #############################

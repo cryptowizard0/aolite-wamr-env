@@ -6,6 +6,10 @@ function handle(msgJSON, aoJSON)
     -- decode inputs
     local msg = json.decode(msgJSON)
     local env = json.decode(aoJSON)
+    print("========================ao log: \n")
+    print("msg:", msg)
+    print("env:", env)
+    
     ao.init(env)
     -- relocate custom tags to root message
     msg = ao.normalize(msg)

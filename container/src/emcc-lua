@@ -179,7 +179,7 @@ def main():
     cmd = ['/opt/wasi-sdk/bin/clang']  # 使用 wasi-sdk 的 clang
     cmd.extend([
         '--target=wasm32-wasi',
-        '-O3',
+        '-O0',
         '-g',
         '-nostartfiles',
         '-D_WASI_EMULATED_SIGNAL',    # 启用信号模拟
@@ -188,7 +188,7 @@ def main():
         '-Wl,--no-entry',
         '-Wl,--allow-undefined',
         '-Wl,--stack-first',          # 优化栈内存布局
-        '-Wl,--initial-memory=16777216',  # 16MB 初始内存
+        '-Wl,--initial-memory=83886080',  # 16MB 初始内存
         '-Wl,--max-memory=2147483648',    # 2GB 最大内存
         # '-Wl,--allow-undefined-file=/opt/aolibc/aolibc.syms',  
     ])

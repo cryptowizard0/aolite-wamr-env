@@ -154,7 +154,7 @@ def main():
                     '  lua_setfield(L, -2, "{}");'.format(f.basename)
                 ])
 
-            c_program = c_program.replace('__LUA_FUNCTION_DECLARATIONS__', definition.make_function_delarations())
+            # c_program = c_program.replace('__LUA_FUNCTION_DECLARATIONS__', definition.make_function_delarations())
             c_program = c_program.replace('__INJECT_LUA_FILES__', '\n'.join(inject_lua_files))
 
             with open('/opt/compile.c', mode='w') as build:
@@ -178,17 +178,18 @@ def main():
     cmd = ['/opt/wasi-sdk/bin/clang']  # 使用 wasi-sdk 的 clang
     cmd.extend([
         '--target=wasm32-wasi',
-        '-O3',
+        '-O0',
         '-g',
         '-nostartfiles',
         '-D_WASI_EMULATED_SIGNAL',    # 启用信号模拟
         '-D_WASI_EMULATED_SETJMP', # 启用 setjmp 模拟
-        # '-Wl,--export-all',
+        '-Wl,--export-all',
         '-Wl,--no-entry',
         '-Wl,--allow-undefined',
         '-Wl,--stack-first',          # 优化栈内存布局
-        '-Wl,--initial-memory=16777216',  # 16MB 初始内存
-        '-Wl,--max-memory=2147483648',    # 2GB 最大内存
+        '-Wl,-z,stack-size=41943040',   # 设置栈大小为 40MB
+        '-Wl,--initial-memory=268435456',  # 256MB 初始内存
+        '-Wl,--max-memory=4294967296',    # 4GB 最大内存
         # '-Wl,--allow-undefined-file=/opt/aolibc/aolibc.syms',  
     ])
 

@@ -40,3 +40,5 @@ Thumbs.db
 _build/
 
 libs/libwamr_utils.a
+libs/libwamr_imports.a
+process/compile.c

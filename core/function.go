@@ -53,14 +53,24 @@ func (c *Context) CallFunction(funcName string, args []WasmValue) ([]WasmValue, 
 
 	// 转换返回值
 	wasmResults := make([]WasmValue, 0)
-	for _, result := range results {
+	for i, result := range results {
 		if result == nil {
 			break
 		}
 
+		fmt.Printf("result[%d] type: %T, value: %v\n", i, result, result)
 		switch v := result.(type) {
 		case int32:
-			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueI32, Data: result})
+			if funcName == "handle" {
+				str, err := c.Instance.ReadString(result.(int32))
+				if err != nil {
+					return nil, fmt.Errorf("failed to read string from memory: %v", err)
+				}
+				defer c.Instance.FreeString(result.(int32))
+				wasmResults = append(wasmResults, WasmValue{Kind: WasmValueString, Data: str})
+			} else {
+				wasmResults = append(wasmResults, WasmValue{Kind: WasmValueI32, Data: result})
+			}
 		case int64:
 			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueI64, Data: result})
 		case float32:
@@ -68,7 +78,10 @@ func (c *Context) CallFunction(funcName string, args []WasmValue) ([]WasmValue, 
 		case float64:
 			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueF64, Data: result})
 		case string:
-			str := c.Instance.ReadString(result.(int32))
+			str, err := c.Instance.ReadString(result.(int32))
+			if err != nil {
+				return nil, fmt.Errorf("failed to read string from memory: %v", err)
+			}
 			defer c.Instance.FreeString(result.(int32))
 			wasmResults = append(wasmResults, WasmValue{Kind: WasmValueString, Data: str})
 		case unsafe.Pointer:
