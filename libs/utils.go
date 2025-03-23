@@ -64,52 +64,51 @@ func (self *Instance) PrintImports() {
 
 // WriteString 将字符串写入 WASM 内存并返回指针
 func (self *Instance) WriteString(s string) (int32, error) {
-	// 分配内存（字符串长度 + 1 用于 null 终止符）
+	// malloc memory for string, (size = len(s) + 1 for '\n' terminator in C)
 	size := len(s) + 1
-	// var offset uint32
-	// ptr := C.wasm_runtime_module_malloc(self._instance, C.uint64_t(size), (*unsafe.Pointer)(unsafe.Pointer(&offset)))
-	// if ptr == nil {
-	// 	return 0, errors.New("failed to allocate memory")
-	// }
-	fmt.Println("--> 1")
 	offset, native_addr := self.ModuleMalloc(uint64(size))
 	if native_addr == nil {
-		fmt.Println("--> 2.0")
-		return 0, fmt.Errorf("failed to allocate memory")
+		return 0, fmt.Errorf("failed to allocate WASM memory")
 	}
 
-	fmt.Println("--> 2", offset, native_addr)
-	v := self.ValidateStrAddr(offset)
-	if !v {
-		fmt.Println("--> 2.1")
-		return 0, fmt.Errorf("failed to validate app addr")
-	}
-	// 获取本地内存指针
-	// native_ptr := C.wasm_runtime_addr_app_to_native(self._instance, C.uint32_t(offset))
-	// if native_ptr == nil {
-	// 	C.wasm_runtime_module_free(self._instance, C.uint32_t(offset))
-	// 	return 0, errors.New("failed to get native pointer")
-	// }
-	native_ptr := self.AddrAppToNative(uint64(offset))
-	fmt.Println("--> 3")
-	// 将字符串复制到 WASM 内存
+	// copy string from native to WASM memory
 	strBytes := []byte(s + string(rune(0)))
-	C.memcpy(unsafe.Pointer(native_ptr), unsafe.Pointer(&strBytes[0]), C.size_t(len(strBytes)))
-	fmt.Println("--> 4")
+	C.memcpy(unsafe.Pointer(native_addr), unsafe.Pointer(&strBytes[0]), C.size_t(len(strBytes)))
 	return int32(offset), nil
 }
 
-// ReadString 从 WASM 内存中读取字符串
-func (self *Instance) ReadString(ptr int32) string {
+// Read string from WASM memory
+func (self *Instance) ReadString(ptr int32) (string, error) {
 	if ptr == 0 {
-		return ""
+		return "", nil
 	}
-	return C.GoString((*C.char)(unsafe.Pointer(uintptr(ptr))))
+	if !self.ValidateStrAddr(uint64(ptr)) {
+		errMsg := fmt.Sprintf("read string failed: validate addrress failed:, %v", ptr)
+		fmt.Println(errMsg)
+		return "", fmt.Errorf(errMsg)
+	}
+	// Convert WASM offset to native pointer
+	native_ptr := self.AddrAppToNative(uint64(ptr))
+	if native_ptr == nil {
+		errMsg := fmt.Sprintf("read string failed: AddrAppToNative failed:, %v", ptr)
+		fmt.Println(errMsg)
+		return "", fmt.Errorf(errMsg)
+	}
+
+	return C.GoString((*C.char)(unsafe.Pointer(native_ptr))), nil
 }
 
-// FreeString 释放字符串占用的内存
-func (self *Instance) FreeString(ptr int32) {
-	if ptr != 0 {
-		C.wasm_runtime_free(unsafe.Pointer(uintptr(ptr)))
+// FreeString frees memory allocated in WASM for a string
+func (self *Instance) FreeString(ptr int32) error {
+	if ptr == 0 {
+		return nil
 	}
+	if !self.ValidateStrAddr(uint64(ptr)) {
+		errMsg := fmt.Sprintf("FreeString failed: validate addrress failed:, %v", ptr)
+		return fmt.Errorf("%s", errMsg)
+	}
+
+	// Free memory
+	self.ModuleFree(uint64(ptr))
+	return nil
 }
