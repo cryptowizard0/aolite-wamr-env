@@ -323,12 +323,14 @@ end
 -- @tparam {table} env The environment in which the handlers are executed.
 -- @treturn The response from the handler(s). Returns a default message if no handler matches.
 function handlers.evaluate(msg, env)
+  print("Debug: handlers.evaluate 1")
   local handled = false
   assert(type(msg) == 'table', 'msg is not valid')
   assert(type(env) == 'table', 'env is not valid')
   
   for _, o in ipairs(handlers.list) do
     if o.name ~= "_default" then
+      print("Debug: handlers.evaluate matching " .. o.name)
       local match = utils.matchesSpec(msg, o.pattern)
       if not (type(match) == 'number' or type(match) == 'string' or type(match) == 'boolean') then
         error("Pattern result is not valid, it MUST be string, number, or boolean")
@@ -351,11 +353,13 @@ function handlers.evaluate(msg, env)
           match = 0
         end
       end
+      print("Debug: handlers.evaluate match ".. match)
 
       if match ~= 0 then
         if match < 0 then
           handled = true
         end
+        print("Debug: handlers.evaluate 2")
         -- each handle function can accept, the msg, env
         local status, err = pcall(o.handle, msg, env)
         if not status then

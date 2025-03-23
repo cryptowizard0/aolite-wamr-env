@@ -145,6 +145,7 @@ def main():
                         '  lua_pushlstring(L, (const char*)lua_require_{}, sizeof(lua_require_{}));'.format(i, i),
                         '  lua_setfield(L, -2, "{}");\n'.format(f.module_name)
                     ])
+                    print('inject lua file: {}'.format(f.module_name))
 
             
             for f in library_files:

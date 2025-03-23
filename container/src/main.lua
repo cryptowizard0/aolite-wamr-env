@@ -12,6 +12,7 @@ local function _inline_loader(name)
     local mod = lua_bundle[name] or lua_bundle[name .. '.init']
     if not mod then return ("module %s not found"):format(name) end
     if type(mod) == 'string' then
+        print("--------------->lua loading module: " .. name)
         local chunk, err = load(mod, name)
         if chunk then
             return chunk

@@ -137,13 +137,19 @@ end
 -- @function init
 -- @tparam {table} env The environment object
 function ao.init(env)
+    print("Debug: ao.init 1")
     if ao.id == "" then ao.id = env.Process.Id end
-
+    print("Debug: ao.init 2")
     if ao._module == "" then
+        print("Debug: ao.init 2.1")
+        print(env.Process.Tags)
+        print("Debug: ao.init 2.2")
         for _, o in ipairs(env.Process.Tags) do
+            --print("Debug: ao.init 2.1- name:" .. tostring(o.name) .. ", value:" .. tostring(o.value))
             if o.name == "Module" then ao._module = o.value end
         end
     end
+    print("Debug: ao.init 3")
 
     if #ao.authorities < 1 then
         for _, o in ipairs(env.Process.Tags) do
@@ -153,7 +159,10 @@ function ao.init(env)
         end
     end
 
+    print("Debug: ao.init 4")
+
     ao.outbox = {Output = {}, Messages = {}, Spawns = {}, Assignments = {}}
+    print("Debug: ao.init 5")
     ao.env = env
 
 end

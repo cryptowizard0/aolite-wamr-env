@@ -23,11 +23,16 @@ static const unsigned char lua_main_program[] = {__LUA_MAIN__};
 static const char* process_handle(lua_State* L, const char* json_msg, const char* json_env) {
   // 准备 Lua 代码
   const char* lua_code = 
+      "require('ao')\n"
+      "local json = require('json')\n"
       "print('This form lua: ')"
       "local json_msg = [=[%s]=]\n"
       "local json_env = [=[%s]=]\n"
       "print(json_msg)\n"
       "print(json_env)\n"
+      "local table_msg = json.decode(json_msg)\n"
+      "local table_env = json.decode(json_env)\n"
+      "ao.init(table_env)\n"
       "return 'hehe, ok!'";
 
       // "require('ao')\n"
@@ -75,46 +80,48 @@ __attribute__((visibility("default")))
 const char*  handle(const char* arg_0, const char* arg_1) {
   fprintf(stderr,"boot lua in handle ### arg_0: %s, arg_1: %s\n", arg_0, arg_1);
   if (wasm_lua_state == NULL) {
-    fprintf(stderr, "newstate 1 \n");
     wasm_lua_state = luaL_newstate();
-    fprintf(stderr,"newstate 2 \n");
-    boot_lua(wasm_lua_state);
-    fprintf(stderr,"newstate 3 \n");
+    if (boot_lua(wasm_lua_state)) {
+      fprintf(stderr,"boot lua failed \n");
+      lua_close(wasm_lua_state);
+      return "boot lua failed";
+    }
+    fprintf(stderr,"boot lua success \n");
   }
-  fprintf(stderr,"get function \n");
+  fprintf(stderr,"call handle: \n");
 
   // call lua throw loader.lua
   //==================================
-  // Push arguments
-  // lua_getglobal(wasm_lua_state, "handle");
-  // if (!lua_isfunction(wasm_lua_state, -1)) {
-  //   printf("function handle is not defined globaly in lua runtime\n");
-  //   lua_settop(wasm_lua_state, 0);
-  //   return "";
-  // }
-  // lua_pushstring(wasm_lua_state, arg_0);
-  // lua_pushstring(wasm_lua_state, arg_1);
 
-  // // Call lua function
-  // fprintf(stderr," pcall \n");
-  // if (lua_pcall(wasm_lua_state, 2, 1, 0)) {
-  //   printf("failed to call handle function\n");
-  //   printf("error: %s\n", lua_tostring(wasm_lua_state, -1));
-  //   lua_settop(wasm_lua_state, 0);
-  //   return "";
-  // }
+  lua_getglobal(wasm_lua_state, "handle");
+  if (!lua_isfunction(wasm_lua_state, -1)) {
+    printf("function handle is not defined globaly in lua runtime\n");
+    lua_settop(wasm_lua_state, 0);
+    return "";
+  }
+  lua_pushstring(wasm_lua_state, arg_0);
+  lua_pushstring(wasm_lua_state, arg_1);
+
+  // Call lua function
+  fprintf(stderr," pcall \n");
+  if (lua_pcall(wasm_lua_state, 2, 1, 0)) {
+    printf("failed to call handle function\n");
+    printf("error: %s\n", lua_tostring(wasm_lua_state, -1));
+    lua_settop(wasm_lua_state, 0);
+    return "";
+  }
   
-  // // Handle return values
-  // if (lua_isstring(wasm_lua_state, -1)) {
-  //   const char* return_value = lua_tostring(wasm_lua_state, -1);
-  //   lua_settop(wasm_lua_state, 0);
-  //   return return_value;
-  // }
-  // return "";
+  // Handle return values
+  if (lua_isstring(wasm_lua_state, -1)) {
+    const char* return_value = lua_tostring(wasm_lua_state, -1);
+    lua_settop(wasm_lua_state, 0);
+    return return_value;
+  }
+  return "";
   //==================================
 
   // call lua throw do_string
-  return process_handle(wasm_lua_state, arg_0, arg_1);
+  // return process_handle(wasm_lua_state, arg_0, arg_1);
   
 }
 
@@ -247,14 +254,18 @@ int boot_lua(lua_State* L) {
   lua_setfield(L, -2, LUA_SQLLIBNAME);
   lua_pop(L, 1);  // remove PRELOAD table
 
+  fprintf(stderr," load main.lua \n");
   if (luaL_loadbuffer(L, (const char*)program, sizeof(program), "main")) {
     fprintf(stderr, "error on luaL_loadbuffer()\n");
     return 1;
   }
+
+  fprintf(stderr," load loader.lua \n");
   lua_newtable(L);
   lua_pushlstring(L, (const char*)lua_main_program, sizeof(lua_main_program));
   lua_setfield(L, -2, "__lua_webassembly__");
 
+  fprintf(stderr," load all lua file \n");
   // This place will be injected by emcc-lua
   __INJECT_LUA_FILES__
 

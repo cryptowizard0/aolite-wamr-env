@@ -2,17 +2,26 @@ local json = require "json"
 ao = require "ao"
 
 function handle(msgJSON, aoJSON)
-    local process = require ".process"
-    -- decode inputs
+    print('handle from loader.lua:')
+    print(msgJSON)
+    print(aoJSON)
     local msg = json.decode(msgJSON)
     local env = json.decode(aoJSON)
-    print("========================ao log: \n")
-    print("msg:", msg)
-    print("env:", env)
     
+    local process = require ".process"
+
+    print("handle --> 0")
+    -- decode inputs
+    
+
+    print("handle --> 1")
     ao.init(env)
+
+    print("handle --> 2")
     -- relocate custom tags to root message
     msg = ao.normalize(msg)
+
+    print("handle --> 3")
     -- handle process
     --
     -- The process may throw an error, either intentionally or unintentionally
@@ -27,6 +36,8 @@ function handle(msgJSON, aoJSON)
     local status, response = pcall(function()
         return (process.handle(msg, ao))
     end)
+
+    print("handle --> 4")
 
     -- encode output
     local responseJSON = json.encode({ok = status, response = response})

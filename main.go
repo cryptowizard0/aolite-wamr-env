@@ -69,34 +69,145 @@ func LoadAO() {
 
 	// Call function
 	msg := `{
-		"From": "FOOBAR",
-		"To": "AOS",
-		"Type": "Command",
-		"Id": "MSG_ID",
-		"Time": "2021-01-01T00:00:00Z",
-		"Data": "return 1 + 1",
-		"Metadata": {
-			"Source": "test",
-			"Target": "aos"
-		}
-	}`
+        "Action": "Eval",
+        "Block-Height": "100000",
+        "Data": "print(\"hello eval\")",
+        "Data-Protocol": "aolite",
+        "From": "eIgnDk4vSKPe0lYB6yhCHDV1dOw3JgYHGocfj7WGrjQ",
+        "Id": "l4Ya5H0RAHZIUoKZzd37AyAAXR7Vx30Hmf2CuOuoPzc",
+        "Module": "0x84534",
+        "Owner": "eIgnDk4vSKPe0lYB6yhCHDV1dOw3JgYHGocfj7WGrjQ",
+        "Tags": [
+            {
+                "name": "From",
+                "value": "eIgnDk4vSKPe0lYB6yhCHDV1dOw3JgYHGocfj7WGrjQ"
+            },
+            {
+                "name": "Data-Protocol",
+                "value": "aolite"
+            },
+            {
+                "name": "Action",
+                "value": "Eval"
+            },
+            {
+                "name": "Target",
+                "value": "2cnUXq0CXgMnjvpZn4w_2HW6zdHPKk6M1jAPBD5do20"
+            },
+            {
+                "name": "Module",
+                "value": "0x84534"
+            },
+            {
+                "name": "Block-Height",
+                "value": "100000"
+            },
+            {
+                "name": "Data",
+                "value": "print(\"hello eval\")"
+            },
+            {
+                "name": "Variant",
+                "value": "aolite.TN.1"
+            },
+            {
+                "name": "Type",
+                "value": "Message"
+            },
+            {
+                "name": "Owner",
+                "value": "eIgnDk4vSKPe0lYB6yhCHDV1dOw3JgYHGocfj7WGrjQ"
+            },
+            {
+                "name": "Id",
+                "value": "l4Ya5H0RAHZIUoKZzd37AyAAXR7Vx30Hmf2CuOuoPzc"
+            }
+        ],
+        "Target": "2cnUXq0CXgMnjvpZn4w_2HW6zdHPKk6M1jAPBD5do20",
+        "Type": "Message",
+        "Variant": "aolite.TN.1"
+    }`
 
 	env := `{
+		"Module": {
+			"Owner": "eIgnDk4vSKPe0lYB6yhCHDV1dOw3JgYHGocfj7WGrjQ",
+			"Id": "0x456",
+			"Tags": [
+			{
+				"name": "Data-Protocol",
+				"value": "aolite"
+			},
+			{
+				"name": "Variant",
+				"value": "aolite.TN.1"
+			},
+			{
+				"name": "Type",
+				"value": "Process"
+			},
+			{
+				"name": "Module-Format",
+				"value": "lua5.3"
+			},
+			{
+				"name": "Memory-Limit",
+				"value": "500-mb"
+			},
+			{
+				"name": "Compute-Limit",
+				"value": "9000000000000"
+			},
+			{
+				"name": "Content-Type",
+				"value": "text/plain"
+			}
+			]
+		},
 		"Process": {
-			"Id": "AOS",
-			"Type": "Service",
-			"Name": "Autonomous Operating System",
-			"Version": "2.0.0"
-		},
-		"Runtime": {
-			"Name": "WASM",
-			"Version": "1.0.0",
-			"Platform": "test"
-		},
-		"Context": {
-			"RequestId": "REQ_ID",
-			"SessionId": "SESSION_ID",
-			"TraceId": "TRACE_ID"
+			"Owner": "eIgnDk4vSKPe0lYB6yhCHDV1dOw3JgYHGocfj7WGrjQ",
+			"Id": "l4Ya5H0RAHZIUoKZzd37AyAAXR7Vx30Hmf2CuOuoPzc",
+			"Tags": [
+			{
+				"name": "Data-Protocol",
+				"value": "aolite"
+			},
+			{
+				"name": "Variant",
+				"value": "aolite.TN.1"
+			},
+			{
+				"name": "Type",
+				"value": "Process"
+			},
+			{
+				"name": "Module",
+				"value": "LSjhdzBjyWuyUPe-g6PUzt8t1PUlw2FZ9SM3_hCh2Is"
+			},
+			{
+				"name": "Scheduler",
+				"value": "eIgnDk4vSKPe0lYB6yhCHDV1dOw3JgYHGocfj7WGrjQ"
+			},
+			{
+				"name": "Authority",
+				"value": "eIgnDk4vSKPe0lYB6yhCHDV1dOw3JgYHGocfj7WGrjQ"
+			},
+			{
+				"name": "App-Name",
+				"value": "aolite"
+			},
+			{
+				"name": "Name",
+				"value": "default"
+			},
+			{
+				"name": "Content-Type",
+				"value": "text/plain"
+			},
+			{
+				"name": "Reference",
+				"value": "0"
+			}
+			]
 		}
 	}`
 	// env = "{}"

@@ -12,6 +12,7 @@ local stringify = require(".stringify")
 -- @see stringify
 return function (ao)
   return function (msg)
+    print('Debug: ---------> eval')
     -- exec expression
     local expr = msg.Data
     local func, err = load("return " .. expr, 'aos', 't', _G)

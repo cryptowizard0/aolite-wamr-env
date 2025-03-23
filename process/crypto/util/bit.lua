@@ -1,8 +1,8 @@
 local ok, e
 ok = nil
-if not ok then
-    ok, e = pcall(require, "bit") -- the LuaJIT one ?
-end
+-- if not ok then
+--     ok, e = pcall(require, "bit") -- the LuaJIT one ?
+-- end
 if not ok then
     ok, e = pcall(require, "bit32") -- Lua 5.2
 end

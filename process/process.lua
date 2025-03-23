@@ -25,7 +25,9 @@ Dump = require('.dump')
 Utils = require('.utils')
 Handlers = require('.handlers')
 local stringify = require(".stringify")
+print("Debug: process 1")
 local assignment = require('.assignment')
+print("Debug: process 2")
 ao = nil
 if _G.package.loaded['.ao'] then
   ao = require('.ao')
@@ -34,6 +36,8 @@ elseif _G.package.loaded['ao'] then
 end
 -- Implement assignable polyfills on _ao
 assignment.init(ao)
+
+print("Debug: process 3")
 
 --- The process table
 -- @table process
@@ -94,6 +98,7 @@ local function insertInbox(msg)
   end
 end
 
+print("Debug: process 4")
 --- Find an object in an array by a given key and value
 -- @lfunction findObject
 -- @tparam {table} array The array to search through
@@ -132,41 +137,46 @@ function Prompt()
     .. "]" .. Colors.reset .. "> "
 end
 
+print("Debug: process 5")
 --- Print a value, formatting tables and converting non-string types
 -- @function print
 -- @tparam {any} a The value to print
-function print(a)
-  if type(a) == "table" then
-    a = stringify.format(a)
-  end
-  --[[
-In order to print non string types we need to convert to string
-  ]]
-  if type(a) == "boolean" then
-    a = Colors.blue .. tostring(a) .. Colors.reset
-  end
-  if type(a) == "nil" then
-    a = Colors.red .. tostring(a) .. Colors.reset
-  end
-  if type(a) == "number" then
-    a = Colors.green .. tostring(a) .. Colors.reset
-  end
+-- function print(a)
+--   print("Debug: process 5.1")
+--   if type(a) == "table" then
+--     a = stringify.format(a)
+--   end
+--   --[[
+-- In order to print non string types we need to convert to string
+--   ]]
+--   if type(a) == "boolean" then
+--     a = Colors.blue .. tostring(a) .. Colors.reset
+--   end
+--   if type(a) == "nil" then
+--     a = Colors.red .. tostring(a) .. Colors.reset
+--   end
+--   if type(a) == "number" then
+--     a = Colors.green .. tostring(a) .. Colors.reset
+--   end
   
-  local data = a
-  if ao.outbox.Output.data then
-    data =  ao.outbox.Output.data .. "\n" .. a
-  end
-  ao.outbox.Output = { data = data, prompt = Prompt(), print = true }
+--   print("Debug: process 5.2")
+--   local data = a
+--   if ao.outbox.Output.data then
+--     data =  ao.outbox.Output.data .. "\n" .. a
+--   end
+--   ao.outbox.Output = { data = data, prompt = Prompt(), print = true }
 
-  -- Only supported for newer version of AOS
-  if HANDLER_PRINT_LOGS then 
-    table.insert(HANDLER_PRINT_LOGS, a)
-    return nil
-  end
+--   print("Debug: process 5.3")
+--   -- Only supported for newer version of AOS
+--   if HANDLER_PRINT_LOGS then 
+--     table.insert(HANDLER_PRINT_LOGS, a)
+--     return nil
+--   end
+--   print("Debug: process 5.4")
+--   return tostring(a)
+-- end
 
-  return tostring(a)
-end
-
+print("Debug: process 6")
 --- Send a message to a target process
 -- @function Send
 -- @tparam {table} msg The message to send
@@ -215,6 +225,7 @@ function Receive(match)
   return Handlers.receive(match)
 end
 
+print("Debug: process 7")
 --- Assigns based on the assignment passed.
 -- @function Assign
 -- @tparam {table} assignment The assignment to be made
@@ -249,7 +260,9 @@ end
 -- @tparam {table} msg The message to initialize the state with
 -- @tparam {table} env The environment to initialize the state with
 local function initializeState(msg, env)
+  print("Debug: initializeState 1")
   if not Seeded then
+    print("Debug: initializeState 2")
     chance.seed(tonumber(msg['Block-Height'] .. stringToSeed(msg.Owner .. msg.Module .. msg.Id)))
     math.random = function (...)
       local args = {...}
@@ -271,7 +284,16 @@ local function initializeState(msg, env)
   Inbox = Inbox or {}
 
   -- Owner should only be assiged once
+  print("Debug: initializeState env.Process.Id: " .. env.Process.Id)
+  print("Debug: initializeState msg.Id: " .. msg.Id)
+  if Owner == nil then
+    print("Debug: initializeState Owner is nil")
+  else
+    print("Debug: initializeState Owner: ".. Owner)
+  end
+  
   if env.Process.Id == msg.Id and not Owner then
+
     local _from = findObject(env.Process.Tags, "name", "From-Process")
     if _from then
       Owner = _from.value
@@ -302,6 +324,7 @@ end
 -- @tparam {table} msg The message to handle
 -- @tparam {table} _ The environment to handle the message in
 function process.handle(msg, _)
+  print("Debug: process.handle 1")
   local env = nil
   if _.Process then
     env = _
@@ -334,7 +357,7 @@ function process.handle(msg, _)
   Errors = Errors or {}
   -- clear Outbox
   ao.clearOutbox()
-
+  print("Debug: process.handle 2")
   -- Only trust messages from a signed owner or an Authority
   if msg.From ~= msg.Owner and not ao.isTrusted(msg) then
     if msg.From ~= ao.id then
@@ -344,14 +367,23 @@ function process.handle(msg, _)
     return ao.result({ }) 
   end
 
-  if ao.isAssignment(msg) and not ao.isAssignable(msg) then
-    if msg.From ~= ao.id then
-      Send({Target = msg.From, Data = "Assignment is not trusted by this process!"})
-    end
-    print('Assignment is not trusted! From: ' .. msg.From .. ' - Owner: ' .. msg.Owner)
-    return ao.result({ })
+  -- if ao.isAssignment(msg) and not ao.isAssignable(msg) then
+  --   if msg.From ~= ao.id then
+  --     Send({Target = msg.From, Data = "Assignment is not trusted by this process!"})
+  --   end
+  --   print('Assignment is not trusted! From: ' .. msg.From .. ' - Owner: ' .. msg.Owner)
+  --   return ao.result({ })
+  -- end
+  if Owner == nil then
+    print("Debug: process.handle 'Owner' is nil")
+  else
+    print("Debug: process.handle, Owner: ".. Owner)
   end
 
+  if msg.From == '' then
+    print("Debug: process.handle 'msg.From' is nil")
+  end
+  print("Debug: process.handle, msg.From: ".. msg.From)
   Handlers.add("_eval",
     function (msg)
       return msg.Action == "Eval" and Owner == msg.From
@@ -404,9 +436,10 @@ function process.handle(msg, _)
       
       ao.send(newMsg)
     end
-
+  
   local co = coroutine.create(
     function()
+      print("Debug: process.handle 2.1")
       return pcall(Handlers.evaluate, msg, env)
     end
   )
@@ -421,9 +454,11 @@ function process.handle(msg, _)
       table.remove(Handlers.coroutines, i)
     end
   end
-
+  print("Debug: process.handle 3")
   if not status then
+    print("Debug: process.handle 4")
     if (msg.Action == "Eval") then
+      print("Debug: process.handle 5")
       table.insert(Errors, result)
       local printData = table.concat(HANDLER_PRINT_LOGS, "\n")
       return { Error = printData .. '\n\n' .. Colors.red .. 'error:\n' .. Colors.reset .. result }
@@ -440,7 +475,7 @@ function process.handle(msg, _)
     local printData = table.concat(HANDLER_PRINT_LOGS, "\n")
     return ao.result({Error = printData .. '\n\n' .. Colors.red .. 'error:\n' .. Colors.reset .. result, Messages = {}, Spawns = {}, Assignments = {} })
   end
-  
+  print("Debug: process.handle 6")
   if msg.Action == "Eval" then
     local response = ao.result({ 
       Output = {
@@ -450,6 +485,7 @@ function process.handle(msg, _)
       }
     })
     HANDLER_PRINT_LOGS = {} -- clear logs
+    print("Debug: process.handle 7")
     return response
   elseif msg.Tags.Type == "Process" and Owner == msg.From then 
     local response = ao.result({ 
